@@ -6,9 +6,9 @@
 model:
   arch: blip2_opt
   model_type: pretrain_opt2.7b 
-  load_pretrained: False
+  load_pretrained: True
   # intialize stage 2 pretraining from stage 1 pretrained model
-  pretrained: "/paddle/workspace/checkpoints/blip2_pretrained.pdparams"
+  pretrained: "../../blip2_pretrained.pdparams"
   freeze_vit: True
 
 
@@ -23,7 +23,7 @@ datasets:
           name: "blip_caption"
     build_info:
         images:
-            storage: '/root/paddlejob/workspace/work/wusiming/blip2/images/'
+            storage: './'          
   # vg_caption: # name of the dataset builder
   #   vis_processor:
   #       train:
@@ -51,7 +51,7 @@ run:
 
   weight_decay: 0.05
   max_epoch: 10
-  batch_size_train: 64
+  batch_size_train: 256
   batch_size_eval: 1
   num_workers: 4
   warmup_steps: 2000

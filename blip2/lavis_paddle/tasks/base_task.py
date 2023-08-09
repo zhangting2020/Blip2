@@ -14,6 +14,7 @@ import paddle
 from lavis_paddle.common.logger import MetricLogger, SmoothedValue
 from lavis_paddle.common.registry import registry
 from lavis_paddle.datasets.data_utils import prepare_sample
+import paddle.profiler as profiler
 
 
 class BaseTask:
@@ -193,9 +194,11 @@ class BaseTask:
             # In iter-based runner, we schedule the learning rate based on iterations.
             inner_epoch = start_iters // iters_per_epoch
             header = header + "; inner epoch [{}]".format(inner_epoch)
+        p = profiler.Profiler(timer_only=True)
+        p.start()
         for i, samples in metric_logger.log_every(data_loader, log_freq, header):
             # if using iter-based runner, we stop after iters_per_epoch iterations.
-            # s_time = time.time()
+            s_time = time.time()
             if i >= iters_per_epoch:
                 break
 
@@ -214,14 +217,21 @@ class BaseTask:
                 if use_amp:
                     scaler.step(optimizer)
                     scaler.update()                     
+                    optimizer.clear_grad()
                 else:    
                     optimizer.step()
-                optimizer.clear_grad()
-            
-            # c_time = time.time()
-            # print(c_time - s_time)
+                    optimizer.clear_grad()
+            c_time = time.time()
+            p.step(num_samples=128)
+            if i == 500:
+                p.stop()
+                #p.summary(op_detail=True)
+                #p.export(path="./blip2_bs_64_baseline.json", format="json")
+                import sys
+                sys.exit()
             metric_logger.update(**loss_dict)
             metric_logger.update(lr=lr_scheduler.get_lr())
+        
 
         # after train_epoch()
         # gather the stats from all processes
@@ -287,7 +297,7 @@ class BaseTask:
         final_result_file = os.path.join(result_dir, "%s.json" % filename)
         # if is_dist_avail_and_initialized():
         #     dist.barrier()
-        paddle.distributed.barrier()
+        # paddle.distributed.barrier()
         # if is_main_process():
         # logging.warning("rank %d starts merging results." % get_rank())
         if rank_id_curr_node==0:

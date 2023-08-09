@@ -26,6 +26,15 @@ from paddle.nn.functional.flash_attention import (
     flash_attention,
 )
 
+import distutils.util
+import os
+
+def strtobool(s):
+    return True if distutils.util.strtobool(s) else False
+
+def get_env(env_name, default_value=False):
+    return strtobool(os.getenv(env_name, str(default_value)))
+use_flash_attn_env = get_env("USE_FLASH_ATTN")
 
 trunc_normal_ = TruncatedNormal(std=.02)
 normal_ = Normal
@@ -146,7 +155,7 @@ class Attention(nn.Layer):
         self.register_buffer("relative_position_index",
                              relative_position_index)
 
-    def forward(self, x, rel_pos_bias=None, use_flash_attn=True):
+    def forward(self, x, rel_pos_bias=None, use_flash_attn=use_flash_attn_env):
         # B= paddle.shape(x)[0]
         N, C = x.shape[1:]
         # if self.q_bias is not None:
